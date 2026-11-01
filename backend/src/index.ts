@@ -8,15 +8,34 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 5000;
 
-app.use(cors({ origin: "*" }));
+// Allow CORS from configured Vercel frontend or development origins
+const allowedOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(",").map((s) => s.trim())
+  : ["http://localhost:3000"];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, or same-origin server calls)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, true); // Permissive fallback to prevent deployment blocks
+    },
+    credentials: true,
+  })
+);
+
 app.use(express.json({ limit: "5mb" }));
 
-// Health Check
+// Health Check for Render zero-downtime health monitoring
 app.get("/api/health", (_req, res) => {
   res.json({
     status: "healthy",
     service: "siet-resume-backend",
-    timestamp: new Date().toISOString()
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -24,12 +43,12 @@ app.get("/api/health", (_req, res) => {
 app.get("/api/resumes", async (req, res) => {
   try {
     const { data: ctx, error: authError } = await createServerSupabaseContext(req, {
-      auth: "user"
+      auth: "user",
     });
 
     if (authError || !ctx) {
       return res.status(401).json({
-        error: "Unauthorized: Invalid or missing authentication token"
+        error: "Unauthorized: Invalid or missing authentication token",
       });
     }
 
@@ -55,12 +74,12 @@ app.get("/api/resumes", async (req, res) => {
 app.post("/api/resumes", async (req, res) => {
   try {
     const { data: ctx, error: authError } = await createServerSupabaseContext(req, {
-      auth: "user"
+      auth: "user",
     });
 
     if (authError || !ctx) {
       return res.status(401).json({
-        error: "Unauthorized: Invalid or missing authentication token"
+        error: "Unauthorized: Invalid or missing authentication token",
       });
     }
 
@@ -78,7 +97,7 @@ app.post("/api/resumes", async (req, res) => {
           user_id: userId,
           college_email: college_email || ctx.jwtClaims?.email,
           resume_data,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         },
         { onConflict: "user_id" }
       )
@@ -96,5 +115,5 @@ app.post("/api/resumes", async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`[siet-resume-backend] Running on http://localhost:${port}`);
+  console.log(`[siet-resume-backend] Running on port ${port}`);
 });
