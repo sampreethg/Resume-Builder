@@ -584,17 +584,33 @@ export default function MultiStepForm({ data, onChange, onOpenAIModal }: Props) 
                         Degree / Program Name
                       </label>
                       {idx === 0 ? (
-                        <select
-                          value={edu.degree}
-                          onChange={(e) => handleEduChange(idx, "degree", e.target.value)}
-                          className="w-full text-xs p-2 border border-neutral-300 rounded bg-white"
-                        >
-                          {SIET_UG_COURSES.map((c) => (
-                            <option key={c} value={c}>
-                              {c}
-                            </option>
-                          ))}
-                        </select>
+                        <div>
+                          <select
+                            value={SIET_UG_COURSES.includes(edu.degree) ? edu.degree : "CUSTOM"}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              handleEduChange(idx, "degree", val === "CUSTOM" ? "" : val);
+                            }}
+                            className="w-full text-xs p-2 border border-neutral-300 rounded bg-white"
+                          >
+                            <option value="">Select Degree / Program</option>
+                            {SIET_UG_COURSES.map((c) => (
+                              <option key={c} value={c}>
+                                {c}
+                              </option>
+                            ))}
+                            <option value="CUSTOM">✍️ Other / Custom Degree...</option>
+                          </select>
+                          {!SIET_UG_COURSES.includes(edu.degree) && (
+                            <input
+                              type="text"
+                              value={edu.degree}
+                              onChange={(e) => handleEduChange(idx, "degree", e.target.value)}
+                              placeholder="e.g. B.E - Computer Science and Engineering"
+                              className="mt-1.5 w-full text-xs p-1.5 border border-neutral-300 rounded bg-neutral-50"
+                            />
+                          )}
+                        </div>
                       ) : (
                         <input
                           type="text"
@@ -685,44 +701,89 @@ export default function MultiStepForm({ data, onChange, onOpenAIModal }: Props) 
                           {idx === 0 ? "Academic Batch / Duration" : "Passing Year"}
                         </label>
                         {idx === 0 ? (
-                          <select
-                            value={edu.duration}
-                            onChange={(e) => handleEduChange(idx, "duration", e.target.value)}
-                            className="w-full text-xs p-2 border border-neutral-300 rounded bg-white"
-                          >
-                            <option value="">Select Batch Duration</option>
-                            {COLLEGE_DURATION_OPTIONS.map((opt) => (
-                              <option key={opt} value={opt}>
+                          <div>
+                            <select
+                              value={COLLEGE_DURATION_OPTIONS.includes(edu.duration) ? edu.duration : "CUSTOM"}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                handleEduChange(idx, "duration", val === "CUSTOM" ? "" : val);
+                              }}
+                              className="w-full text-xs p-2 border border-neutral-300 rounded bg-white"
+                            >
+                              <option value="">Select Batch Duration</option>
+                              {COLLEGE_DURATION_OPTIONS.map((opt) => (
+                                <option key={opt} value={opt}>
                                 {opt}
-                              </option>
-                            ))}
-                          </select>
+                                </option>
+                              ))}
+                              <option value="CUSTOM">✍️ Other / Custom Duration...</option>
+                            </select>
+                            {!COLLEGE_DURATION_OPTIONS.includes(edu.duration) && (
+                              <input
+                                type="text"
+                                value={edu.duration}
+                                onChange={(e) => handleEduChange(idx, "duration", e.target.value)}
+                                placeholder="e.g. 2022 - 2026 or 2023 - 2027"
+                                className="mt-1.5 w-full text-xs p-1.5 border border-neutral-300 rounded bg-neutral-50"
+                              />
+                            )}
+                          </div>
                         ) : idx === 1 ? (
-                          <select
-                            value={edu.duration}
-                            onChange={(e) => handleEduChange(idx, "duration", e.target.value)}
-                            className="w-full text-xs p-2 border border-neutral-300 rounded bg-white"
-                          >
-                            <option value="">Select Passing Year</option>
-                            {HSC_YEAR_OPTIONS.map((yr) => (
-                              <option key={yr} value={yr}>
-                                {yr}
-                              </option>
-                            ))}
-                          </select>
+                          <div>
+                            <select
+                              value={HSC_YEAR_OPTIONS.includes(edu.duration) ? edu.duration : "CUSTOM"}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                handleEduChange(idx, "duration", val === "CUSTOM" ? "" : val);
+                              }}
+                              className="w-full text-xs p-2 border border-neutral-300 rounded bg-white"
+                            >
+                              <option value="">Select Passing Year</option>
+                              {HSC_YEAR_OPTIONS.map((yr) => (
+                                <option key={yr} value={yr}>
+                                  {yr}
+                                </option>
+                              ))}
+                              <option value="CUSTOM">✍️ Other Year...</option>
+                            </select>
+                            {!HSC_YEAR_OPTIONS.includes(edu.duration) && (
+                              <input
+                                type="text"
+                                value={edu.duration}
+                                onChange={(e) => handleEduChange(idx, "duration", e.target.value)}
+                                placeholder="e.g. 2022"
+                                className="mt-1.5 w-full text-xs p-1.5 border border-neutral-300 rounded bg-neutral-50"
+                              />
+                            )}
+                          </div>
                         ) : (
-                          <select
-                            value={edu.duration}
-                            onChange={(e) => handleEduChange(idx, "duration", e.target.value)}
-                            className="w-full text-xs p-2 border border-neutral-300 rounded bg-white"
-                          >
-                            <option value="">Select Passing Year</option>
-                            {SSLC_YEAR_OPTIONS.map((yr) => (
-                              <option key={yr} value={yr}>
-                                {yr}
-                              </option>
-                            ))}
-                          </select>
+                          <div>
+                            <select
+                              value={SSLC_YEAR_OPTIONS.includes(edu.duration) ? edu.duration : "CUSTOM"}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                handleEduChange(idx, "duration", val === "CUSTOM" ? "" : val);
+                              }}
+                              className="w-full text-xs p-2 border border-neutral-300 rounded bg-white"
+                            >
+                              <option value="">Select Passing Year</option>
+                              {SSLC_YEAR_OPTIONS.map((yr) => (
+                                <option key={yr} value={yr}>
+                                  {yr}
+                                </option>
+                              ))}
+                              <option value="CUSTOM">✍️ Other Year...</option>
+                            </select>
+                            {!SSLC_YEAR_OPTIONS.includes(edu.duration) && (
+                              <input
+                                type="text"
+                                value={edu.duration}
+                                onChange={(e) => handleEduChange(idx, "duration", e.target.value)}
+                                placeholder="e.g. 2020"
+                                className="mt-1.5 w-full text-xs p-1.5 border border-neutral-300 rounded bg-neutral-50"
+                              />
+                            )}
+                          </div>
                         )}
                       </div>
                       <div>
