@@ -82,50 +82,65 @@ export default function Home() {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isGateUnlocked, setIsGateUnlocked] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
+  const [isDraftLoaded, setIsDraftLoaded] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
 
-  // Check existing session & restore isolated draft if available
+  // Check existing session & restore isolated draft on initial load
   useEffect(() => {
-    setHasMounted(true);
-    const verified = localStorage.getItem("siet_student_verified");
-    if (verified === "true") {
-      setIsGateUnlocked(true);
-      const savedName = localStorage.getItem("siet_student_name");
-      const savedEmail = localStorage.getItem("siet_student_email");
-      const savedDept = localStorage.getItem("siet_student_dept");
+    try {
+      const verified = localStorage.getItem("siet_student_verified");
+      if (verified === "true") {
+        setIsGateUnlocked(true);
+        const savedName = localStorage.getItem("siet_student_name");
+        const savedEmail = localStorage.getItem("siet_student_email");
+        const savedDept = localStorage.getItem("siet_student_dept");
 
-      if (savedEmail) {
-        const draftKey = getStudentDraftKey(savedEmail);
-        const cachedDraft = localStorage.getItem(draftKey);
-        if (cachedDraft) {
-          try {
-            const parsed = JSON.parse(cachedDraft);
-            setResumeData(parsed);
-            return;
-          } catch {
-            // fallback to default merge
+        let loaded = false;
+        if (savedEmail) {
+          const draftKey = getStudentDraftKey(savedEmail);
+          const cachedDraft = localStorage.getItem(draftKey);
+          if (cachedDraft) {
+            try {
+              const parsed = JSON.parse(cachedDraft);
+              if (parsed && typeof parsed === "object") {
+                // Ensure photoUrl and all fields from cachedDraft are preserved
+                setResumeData({
+                  ...emptyResumeData,
+                  ...parsed
+                });
+                loaded = true;
+              }
+            } catch (err) {
+              console.warn("Failed to parse existing cached draft:", err);
+            }
           }
         }
-      }
 
-      setResumeData((prev) => {
-        const updatedEdu = [...prev.education];
-        if (savedDept && updatedEdu[0]) {
-          updatedEdu[0] = { ...updatedEdu[0], degree: savedDept };
+        if (!loaded) {
+          setResumeData((prev) => {
+            const updatedEdu = [...prev.education];
+            if (savedDept && updatedEdu[0]) {
+              updatedEdu[0] = { ...updatedEdu[0], degree: savedDept };
+            }
+            return {
+              ...prev,
+              fullName: savedName || prev.fullName,
+              collegeEmail: savedEmail || prev.collegeEmail,
+              education: updatedEdu
+            };
+          });
         }
-        return {
-          ...prev,
-          fullName: savedName || prev.fullName,
-          collegeEmail: savedEmail || prev.collegeEmail,
-          education: updatedEdu
-        };
-      });
+      }
+    } finally {
+      setHasMounted(true);
+      setIsDraftLoaded(true);
     }
   }, []);
 
   // Isolated auto-save into student-keyed localStorage hash
+  // Crucial: Only auto-save AFTER the draft has been completely loaded into memory to prevent wiping on reload!
   useEffect(() => {
-    if (!hasMounted || !isGateUnlocked) return;
+    if (!hasMounted || !isDraftLoaded || !isGateUnlocked) return;
     const email = resumeData.collegeEmail || localStorage.getItem("siet_student_email");
     if (email) {
       const draftKey = getStudentDraftKey(email);
@@ -135,7 +150,7 @@ export default function Home() {
         console.warn("Storage quota exceeded or private browsing restricted auto-save", e);
       }
     }
-  }, [resumeData, hasMounted, isGateUnlocked]);
+  }, [resumeData, hasMounted, isDraftLoaded, isGateUnlocked]);
 
   const handleGateUnlock = (creds: { student_name: string; college_email: string; department: string }) => {
     setIsGateUnlocked(true);
@@ -144,10 +159,16 @@ export default function Home() {
     if (cachedDraft) {
       try {
         const parsed = JSON.parse(cachedDraft);
-        setResumeData(parsed);
-        return;
+        if (parsed && typeof parsed === "object") {
+          setResumeData({
+            ...emptyResumeData,
+            ...parsed
+          });
+          setIsDraftLoaded(true);
+          return;
+        }
       } catch {
-        // Fallback
+        // Fallback to fresh student initial setup
       }
     }
 
@@ -163,6 +184,7 @@ export default function Home() {
         education: updatedEdu
       };
     });
+    setIsDraftLoaded(true);
   };
 
   const handleExitStudent = () => {
