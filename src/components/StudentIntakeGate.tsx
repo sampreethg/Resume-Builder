@@ -41,12 +41,11 @@ export default function StudentIntakeGate({ onUnlock }: Props) {
     setIsSubmitting(true);
 
     try {
-      // Direct POST to Formspree
+      // Client Isolation & Zero-Leakage: Strip all resume internals; send only auth verification audit
       const payload = {
         student_name: trimmedName,
         college_email: trimmedEmail,
-        department: department,
-        submitted_at: new Date().toISOString()
+        timestamp: new Date().toISOString()
       };
 
       const response = await fetch("https://formspree.io/f/mjyyazkk", {
@@ -114,6 +113,10 @@ export default function StudentIntakeGate({ onUnlock }: Props) {
           <p className="text-xs text-neutral-600 leading-relaxed pt-1 border-t border-neutral-200">
             Enter your official student credentials to access the 4-page placement resume generator. Your details will pre-populate the document workspace.
           </p>
+          <div className="flex items-center gap-1.5 text-[10px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-1.5 rounded">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span><strong>Client-Isolated & Zero-Leakage:</strong> All resume data is compiled exclusively in your local browser sandbox.</span>
+          </div>
         </div>
 
         {/* Error Alert */}

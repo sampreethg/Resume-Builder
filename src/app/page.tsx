@@ -8,7 +8,8 @@ import ThemeSelector from "@/components/ThemeSelector";
 import StudentIntakeGate from "@/components/StudentIntakeGate";
 import { SIET_COLLEGE_NAME } from "@/constants/collegeData";
 import { ResumeData } from "@/types/resume";
-import { Download, Sparkles, GraduationCap, Loader2, LogOut } from "lucide-react";
+import { Download, Sparkles, GraduationCap, Loader2, LogOut, ShieldCheck, Lock } from "lucide-react";
+import { getStudentDraftKey } from "@/utils/security";
 
 export const emptyResumeData: ResumeData = {
   themeColor: "#000000",
@@ -83,7 +84,7 @@ export default function Home() {
   const [hasMounted, setHasMounted] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
 
-  // Check existing session
+  // Check existing session & restore isolated draft if available
   useEffect(() => {
     setHasMounted(true);
     const verified = localStorage.getItem("siet_student_verified");
@@ -92,6 +93,20 @@ export default function Home() {
       const savedName = localStorage.getItem("siet_student_name");
       const savedEmail = localStorage.getItem("siet_student_email");
       const savedDept = localStorage.getItem("siet_student_dept");
+
+      if (savedEmail) {
+        const draftKey = getStudentDraftKey(savedEmail);
+        const cachedDraft = localStorage.getItem(draftKey);
+        if (cachedDraft) {
+          try {
+            const parsed = JSON.parse(cachedDraft);
+            setResumeData(parsed);
+            return;
+          } catch {
+            // fallback to default merge
+          }
+        }
+      }
 
       setResumeData((prev) => {
         const updatedEdu = [...prev.education];
@@ -108,8 +123,34 @@ export default function Home() {
     }
   }, []);
 
+  // Isolated auto-save into student-keyed localStorage hash
+  useEffect(() => {
+    if (!hasMounted || !isGateUnlocked) return;
+    const email = resumeData.collegeEmail || localStorage.getItem("siet_student_email");
+    if (email) {
+      const draftKey = getStudentDraftKey(email);
+      try {
+        localStorage.setItem(draftKey, JSON.stringify(resumeData));
+      } catch (e) {
+        console.warn("Storage quota exceeded or private browsing restricted auto-save", e);
+      }
+    }
+  }, [resumeData, hasMounted, isGateUnlocked]);
+
   const handleGateUnlock = (creds: { student_name: string; college_email: string; department: string }) => {
     setIsGateUnlocked(true);
+    const draftKey = getStudentDraftKey(creds.college_email);
+    const cachedDraft = localStorage.getItem(draftKey);
+    if (cachedDraft) {
+      try {
+        const parsed = JSON.parse(cachedDraft);
+        setResumeData(parsed);
+        return;
+      } catch {
+        // Fallback
+      }
+    }
+
     setResumeData((prev) => {
       const updatedEdu = [...prev.education];
       if (updatedEdu[0]) {
@@ -125,6 +166,11 @@ export default function Home() {
   };
 
   const handleExitStudent = () => {
+    const currentEmail = resumeData.collegeEmail || localStorage.getItem("siet_student_email");
+    if (currentEmail) {
+      const draftKey = getStudentDraftKey(currentEmail);
+      localStorage.removeItem(draftKey);
+    }
     localStorage.removeItem("siet_student_verified");
     localStorage.removeItem("siet_student_name");
     localStorage.removeItem("siet_student_email");
@@ -242,15 +288,23 @@ export default function Home() {
             )}
           </button>
 
-          {/* Switch Student / Exit Session */}
-          <button
-            onClick={handleExitStudent}
-            title="Log out and switch student account"
-            className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 rounded border border-transparent hover:border-neutral-200 transition"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Exit</span>
-          </button>
+          {/* Client Isolation Security Badge & Logout Control */}
+          <div className="flex items-center gap-2 pl-2 border-l border-neutral-200">
+            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium bg-neutral-50 border border-neutral-200 rounded text-neutral-700">
+              <Lock className="w-3 h-3 text-neutral-500" />
+              <span>Session Active:</span>
+              <strong className="text-neutral-900 font-semibold">{resumeData.collegeEmail || "Student"}</strong>
+            </div>
+
+            <button
+              onClick={handleExitStudent}
+              title="Wipe draft cache, clear memory, and sign out"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded transition cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Clear Data &amp; Sign Out</span>
+            </button>
+          </div>
         </div>
       </header>
 

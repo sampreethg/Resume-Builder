@@ -50,6 +50,7 @@ import {
   Calendar
 } from "lucide-react";
 import { fetchGitHubRepoDetails } from "@/utils/github";
+import { validatePassportPhoto } from "@/utils/security";
 
 interface Props {
   data: ResumeData;
@@ -71,13 +72,17 @@ export default function MultiStepForm({ data, onChange, onOpenAIModal }: Props) 
     onChange({ ...data, [key]: value });
   };
 
-  // Local File Upload with HTML5 FileReader
+  // Local File Upload with HTML5 FileReader & Strict Client Validation
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!["image/jpeg", "image/jpg", "image/png"].includes(file.type)) {
-      alert("Please upload a valid JPG or JPEG passport image.");
+    const validation = validatePassportPhoto(file);
+    if (!validation.valid) {
+      alert(validation.error || "Invalid photograph file.");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       return;
     }
 
