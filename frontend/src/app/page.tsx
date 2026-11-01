@@ -179,19 +179,26 @@ export default function Home() {
     setIsGateUnlocked(false);
   };
 
-  // Direct PDF Download via html2pdf.js without print dialog
+  // Direct PDF Download via html2pdf.js with resilient element rendering & fallback
   const handleDownloadPDF = async () => {
     if (!previewRef.current || isGeneratingPdf) return;
 
     try {
       setIsGeneratingPdf(true);
-      // Dynamically import client-side
-      const html2pdf = (await import("html2pdf.js")).default;
+      // Dynamically import client-side with robust CJS/ESM interop
+      const html2pdfModule = await import("html2pdf.js");
+      const html2pdf = (html2pdfModule as any).default || html2pdfModule;
+
+      if (typeof html2pdf !== "function") {
+        throw new Error("html2pdf library could not be initialized");
+      }
 
       const studentNameSanitized = (resumeData.fullName || "Student")
         .trim()
         .replace(/[^a-zA-Z0-9_-]/g, "_");
       const filename = `${studentNameSanitized}_Resume.pdf`;
+
+      const element = previewRef.current;
 
       const opt = {
         margin: 0,
@@ -201,7 +208,10 @@ export default function Home() {
           scale: 2,
           useCORS: true,
           letterRendering: true,
-          logging: false
+          logging: false,
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: element.scrollWidth || 794
         },
         jsPDF: {
           unit: "mm",
@@ -216,10 +226,16 @@ export default function Home() {
         }
       };
 
-      await html2pdf().set(opt).from(previewRef.current).save();
+      await html2pdf().set(opt).from(element).save();
     } catch (err) {
       console.error("PDF generation failed:", err);
-      alert("Failed to generate PDF. Please ensure all details and images are properly loaded.");
+      // Fallback: If canvas rendering encounters unsupported DOM/CSS, trigger native print-to-PDF
+      const proceedNative = confirm(
+        "Direct PDF rendering encountered an issue. Would you like to use the browser Print / Save as PDF dialog instead?"
+      );
+      if (proceedNative) {
+        window.print();
+      }
     } finally {
       setIsGeneratingPdf(false);
     }
