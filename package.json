@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@supabase/server": "^1.9.2",
+    "@supabase/supabase-js": "^2.118.0",
     "@types/html2pdf.js": "^0.10.0",
     "html2pdf.js": "^0.14.0",
     "lucide-react": "^1.66.0",
